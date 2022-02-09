@@ -25,11 +25,11 @@ bool portable;
 void setup() {
 
   Serial.begin(9600);
-  servothumb.attach(9);  
-  servoindex.attach(10);  
-  servopinky.attach(11);
-  servoring.attach(12);
-  servomiddle.attach(13);
+  servothumb.attach(13);  
+  servoindex.attach(11);  
+  servopinky.attach(12);
+  servoring.attach(9);
+  servomiddle.attach(10);
   myButton = analogRead(A0);
   delay(500);
   if (myButton == 0){portable = false;}
@@ -50,7 +50,7 @@ else{
   
 receiveData();
 if (servoPinky ==1){  servopinky.write(180);}else{servopinky.write(0);}
-if (servoIndex ==1){  servoindex.write(180);}else{servoindex.write(0);}
+if (servoIndex ==1){  servoindex.write(0);}else{servoindex.write(180);}
 if (servoMiddle ==1){  servomiddle.write(180);}else{servomiddle.write(0);}
 if (servoThumb ==1){  servothumb.write(180);}else{servothumb.write(0);}
 if (servoRing ==1){  servoring.write(180);}else{servoring.write(0);}
