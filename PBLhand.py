@@ -1,17 +1,18 @@
+from cvzone.HandTrackingModule import HandDetector
 from pickle import PicklingError
 import cv2
 import mediapipe
 import serial
+
 drawingModule = mediapipe.solutions.drawing_utils
 handsModule = mediapipe.solutions.hands
- 
 capture = cv2.VideoCapture(0, cv2.CAP_DSHOW)
- 
+detector = HandDetector(detectionCon=0.8, maxHands=2)
 frameWidth = capture.get(cv2.CAP_PROP_FRAME_WIDTH)
 frameHeight = capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
 try:
-        ser = serial.Serial("COM10", 9600)
+        ser = serial.Serial("COM9", 9600)
         print("Robot Connected ")
 except:
         print("Not Connected To Robot ")
@@ -38,6 +39,12 @@ with handsModule.Hands(static_image_mode=False, min_detection_confidence=0.7, mi
         ret, frame = capture.read()
  
         results = hands.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+       
+        success, img = capture.read()
+        hand,img= detector.findHands(img)
+        if hand:
+            handType1 = hand[0]["type"]
+            print(handType1)
  
         if results.multi_hand_landmarks != None:
             for handLandmarks in results.multi_hand_landmarks:
@@ -99,7 +106,8 @@ with handsModule.Hands(static_image_mode=False, min_detection_confidence=0.7, mi
             #print(middlejoint)
             #print(middlejointcoors)
             #
-            thumbjoint = handLandmarks.landmark[1]
+            thumbjoint = handLandmarks.landmark[5]
+            thumbjoint1 = handLandmarks.landmark[0]
             thumbjointcoors = drawingModule._normalized_to_pixel_coordinates(thumbjoint.x, thumbjoint.y, frameWidth, frameHeight)
             #print("thumb_joint")
             #print(thumbjoint)
@@ -113,6 +121,7 @@ with handsModule.Hands(static_image_mode=False, min_detection_confidence=0.7, mi
 
             #print(f"joint {indexjoint.y}" )
             #print(f"tip {indextip.y} ")
+            
             ij = indexjoint.y
             it = indextip.y
             
@@ -126,9 +135,10 @@ with handsModule.Hands(static_image_mode=False, min_detection_confidence=0.7, mi
             pt = pinkytip.y
 
             tj = thumbjoint.x
+            tj1 = thumbjoint1.x
             tt = thumbtip.x
             
-            if ij <= it:
+            if ij >= it:
                 #print(f"i{numi}")
                 numi+=1
                 iif = True
@@ -155,17 +165,26 @@ with handsModule.Hands(static_image_mode=False, min_detection_confidence=0.7, mi
                 pif = True
             else: 
                 pif = False
-            
-            if tj >= tt:
-                #print(f"t{numt}")
-                numt+=1 
-                tif = True
-            else: 
-                tif = False  
-                                                                                            #p, r, m, i, t
+
+            if handType1 == "Right":
+                if ((tj1+tj)/2) <= tt:
+                    #print(f"t{numt}")
+                    numt+=1 
+                    tif = True
+                else: 
+                    tif = False
+            elif handType1 == "Left":
+                if ((tj1+tj)/2) >= tt:
+                    #print(f"t{numt}")
+                    numt+=1 
+                    tif = True
+                else: 
+                    tif = False
+                
+                #p, r, m, i, t
             if   (    pif and         rif and         mif and     iif and     tif):sendData([1, 1, 1, 1, 1]);FingerCount="Five"
             elif (    pif and         rif and         mif and     iif and not tif):sendData([1, 1, 1, 1, 0]);FingerCount="Four"
-            elif (    pif and         rif and         mif and not iif and     tif):sendData([0, 1, 1, 0, 1]);FingerCount="Three"
+            elif (    pif and         rif and         mif and not iif and     tif):sendData([1, 1, 1, 0, 1]);FingerCount="Three"
             elif (    pif and         rif and         mif and not iif and not tif):sendData([1, 1, 1, 0, 0]);FingerCount="Three"
             elif (    pif and         rif and     not mif and     iif and     tif):sendData([1, 1, 0, 1, 1]);FingerCount="four"
             elif (    pif and         rif and     not mif and     iif and not tif):sendData([1, 1, 0, 1, 0]);FingerCount="Three"
@@ -184,7 +203,7 @@ with handsModule.Hands(static_image_mode=False, min_detection_confidence=0.7, mi
             elif (not pif and         rif and         mif and not iif and     tif):sendData([0, 1, 1, 0, 1]);FingerCount="Three"
             elif (not pif and         rif and         mif and not iif and not tif):sendData([0, 1, 1, 0, 0]);FingerCount="Two"
             elif (not pif and         rif and     not mif and     iif and     tif):sendData([0, 1, 0, 1, 1]);FingerCount="Three"
-            elif (not pif and         rif and     not mif and     iif and not tif):sendData([0, 1, 0, 1, 0]);FingerCount="Two"
+            elif (not pif and         rif and     not mif and     iif and not tif):sendData([0, 1, 0, 1, 0]);FingerCount="Two" 
             elif (not pif and         rif and     not mif and not iif and     tif):sendData([0, 1, 0, 0, 1]);FingerCount="Two"
             elif (not pif and         rif and     not mif and not iif and not tif):sendData([0, 1, 0, 0, 0]);FingerCount="one"
             elif (not pif and     not rif and         mif and     iif and     tif):sendData([0, 0, 1, 1, 1]);FingerCount="three"
@@ -197,8 +216,7 @@ with handsModule.Hands(static_image_mode=False, min_detection_confidence=0.7, mi
             elif (not pif and     not rif and     not mif and not iif and not tif):sendData([0, 0, 0, 0, 0]);FingerCount="zero"
             else:sendData([0, 0, 0, 0, 0]);FingerCount="zero"
 
-
-        cv2.imshow('LEFT HAND', frame)
+        cv2.imshow('hanD', frame)
  
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
